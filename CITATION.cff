@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "Please cite the DeltaMask paper. This repository contains project references only."
+title: "DeltaMask project references"
+type: software
+authors:
+  - family-names: Tsouvalas
+    given-names: Vasileios
+repository-code: "https://github.com/Nousphera/DeltaMask"
+preferred-citation:
+  type: conference-paper
+  title: "DeltaMask: Minimizing Communication in Federated Fine-Tuning of Vision Foundation Models"
+  authors:
+    - family-names: Tsouvalas
+      given-names: Vasileios
+    - family-names: Asano
+      given-names: Yuki M.
+    - family-names: Saeed
+      given-names: Aaqib
+  collection-title: "2024 IEEE International Conference on Big Data"
+  start: "8042"
+  end: "8051"
+  year: 2025
+  doi: "10.1109/BigData62323.2024.10825398"

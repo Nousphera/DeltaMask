@@ -58,7 +58,11 @@ def main():
     parser.add_argument("--clients", type=int)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--output")
-    parser.add_argument("--download", action="store_true")
+    parser.add_argument(
+        "--download",
+        action="store_true",
+        help="Permit pretrained model downloads; prepare datasets separately",
+    )
     args = parser.parse_args()
     cfg = defaults()
     if args.config:

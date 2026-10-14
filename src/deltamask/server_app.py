@@ -146,7 +146,10 @@ def run_server(grid, cfg, checkpoint_path=None):
                 scores=scores,
                 **{"head." + n: v.detach().cpu().numpy() for n, v in state.items()},
             )
+    from .dataset_io import manifest_digest
+
     return {
+        "data_manifest_sha256": manifest_digest(cfg["dataset"], cfg["data-root"]),
         "environment": {
             "python": platform.python_version(),
             "torch": torch.__version__,

@@ -127,3 +127,9 @@ saved run, rebuild `make_model` with its JSON configuration and class count, loa
 these head tensors, call `enable_masks()`, then `set_mask_scores(model, scores)`.
 The frozen pretrained weights remain external and are identified by the model
 revision; optimizer state and automatic training resumption are not provided.
+
+## Dataset setup follow-up
+
+[DATASETS.md](DATASETS.md) defines the maintained preparation contract. Training now consumes `ROOT/DATASET` roots created by `scripts/prepare_data.py`; older direct CIFAR roots can be imported with `--source`. The preparation manifest identifies class maps, split sizes, label order and file hashes. Reports include its SHA256. Generated source-format fixtures exercise import, validation and actual training; their metrics are correctness diagnostics. No newly implemented ingestion path implies recovered historical splits or reproduced benchmark results.
+
+The supported CLIP/DINO loaders also accept a local Hugging Face `save_pretrained` directory through `model-checkpoint`. This permits offline integration checks with a small random CLIP model while retaining real CLIP modules, mask gradients, filter transport and Bayesian aggregation. Such a model is a test fixture, not the paper's pretrained checkpoint. Vision libraries are base application dependencies because native Flower installs an isolated app environment; host-only extras were insufficient.

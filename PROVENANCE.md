@@ -53,3 +53,7 @@ No prebuilt platform binary is committed.
 No first-party license was found in the baseline or recovered source; the
 third-party Apache license is not a grant over the whole project. Attribution
 and paper copyright are separate from a repository reuse license.
+
+## Dataset/setup follow-up (2026-10-15)
+
+The maintained release adds `scripts/setup.sh`, `scripts/prepare_data.py`, namespaced dataset preparation/validation, manifests and generated-source integration tests. These modules are new integration code rather than recovered historical experiment scripts. Official dataset loading remains delegated to torchvision; fixed-split imports remain user-supplied. See `DATASETS.md` for split conventions and `REPRODUCIBILITY.md` for method/benchmark limits.

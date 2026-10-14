@@ -69,28 +69,6 @@ def load_data(cfg):
             T.Normalize(mean, std),
         ]
     )
-    root = Path(cfg["data-root"]) / name
-    download = cfg["allow-download"]
-    if name in ["cifar10", "cifar100", "fashion-mnist", "emnist"]:
-        cls = {
-            "cifar10": D.CIFAR10,
-            "cifar100": D.CIFAR100,
-            "fashion-mnist": D.FashionMNIST,
-            "emnist": D.EMNIST,
-        }[name]
-        extra = {"split": "balanced"} if name == "emnist" else {}
-        train = cls(root, train=True, transform=transform, download=download, **extra)
-        test = cls(root, train=False, transform=transform, download=download, **extra)
-    elif name in ["svhn", "food101"]:
-        cls = D.SVHN if name == "svhn" else D.Food101
-        train = cls(root, split="train", transform=transform, download=download)
-        test = cls(root, split="test", transform=transform, download=download)
-    elif name in ["eurosat", "cars196", "imagefolder"]:
-        # Require an explicit fixed split; never guess a benchmark's missing split recipe.
-        train = D.ImageFolder(root / "train", transform=transform)
-        test = D.ImageFolder(root / "test", transform=transform)
-        if train.class_to_idx != test.class_to_idx:
-            raise ValueError("Train/test class directories differ")
-    else:
-        raise ValueError(f"Unknown dataset: {name}")
-    return train, test, int(max(targets(train).max(), targets(test).max()) + 1)
+    from .dataset_io import load_prepared
+
+    return load_prepared(name, cfg["data-root"], transform)

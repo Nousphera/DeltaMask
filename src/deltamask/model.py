@@ -113,8 +113,8 @@ def make_model(cfg, classes):
                 "clip-vit-l14": "openai/clip-vit-large-patch14",
             }[name]
             backbone = CLIPVisionModelWithProjection.from_pretrained(
-                identifier,
-                revision=revision,
+                cfg["model-checkpoint"] or identifier,
+                revision=None if cfg["model-checkpoint"] else revision,
                 local_files_only=not cfg["allow-download"],
             )
             model = Model(
@@ -132,8 +132,8 @@ def make_model(cfg, classes):
                 "dinov2-small": "facebook/dinov2-small",
             }[name]
             backbone = AutoModel.from_pretrained(
-                identifier,
-                revision=revision,
+                cfg["model-checkpoint"] or identifier,
+                revision=None if cfg["model-checkpoint"] else revision,
                 local_files_only=not cfg["allow-download"],
             )
             model = Model(

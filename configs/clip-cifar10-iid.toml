@@ -1,0 +1,17 @@
+# Paper-shaped experiment; full benchmark has not been reproduced by this release.
+dataset = "cifar10"
+model = "clip-vit-b32"
+num-clients = 30
+num-rounds = 100
+participation = 1.0
+local-epochs = 1
+alpha = 10.0
+batch-size = 64
+learning-rate = 0.1
+probe-learning-rate = 0.1
+kappa = 0.8
+seed = 42
+device = "cuda"
+allow-download = false
+data-root = "data"
+output = "results/clip-cifar10-iid.json"

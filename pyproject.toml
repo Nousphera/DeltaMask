@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=77", "wheel", "pybind11==3.0.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deltamask"
+version = "0.1.0"
+description = "DeltaMask stochastic mask learning and four-wise binary fuse transport"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = ["numpy>=2,<3", "scipy>=1.14,<2", "pillow>=11,<13", "torch==2.8.0", "torchvision==0.23.0", "flwr==1.40.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+simulation = ["flwr[simulation]==1.40.0"]
+vision = ["transformers==4.57.6", "timm==1.0.30"]
+
+[project.scripts]
+deltamask-train = "deltamask.train:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+deltamask = ["native/*.cpp", "native/*.json", "native/fastfilter/*.h", "native/fastfilter/LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.flwr.app]
+publisher = "nousphera"
+
+[tool.flwr.app.components]
+serverapp = "deltamask.server_app:app"
+clientapp = "deltamask.client_app:app"
+
+[tool.flwr.app.config]
+num-rounds = 2
+num-clients = 2
+participation = 1.0
+local-epochs = 1
+batch-size = 16
+learning-rate = 0.1
+probe-learning-rate = 0.1
+kappa = 0.8
+seed = 42
+dataset = "synthetic"
+model = "tiny"
+data-root = "data"
+allow-download = false
+alpha = 10.0
+samples-per-client = 32
+output = "results/flower.json"
+device = "cpu"
+model-revision = ""
+model-checkpoint = ""
+
+
+#######################################################################
+# CONFIGURATION MIGRATION NOTICE:
+#
+# What was previously called "federation config" for SuperLink
+# connections in pyproject.toml has been renamed and moved.
+#
+# These settings are now **SuperLink connection configuration**
+# and are defined in the Flower configuration file.
+#
+# The entries below are commented out intentionally and are kept
+# only as a migration reference.
+#
+# Docs: https://flower.ai/docs/framework/ref-flower-configuration.html
+#######################################################################
+
+#

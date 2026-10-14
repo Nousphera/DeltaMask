@@ -1,0 +1,8 @@
+dataset = "synthetic"
+model = "tiny"
+num-clients = 2
+num-rounds = 2
+samples-per-client = 32
+batch-size = 16
+seed = 42
+output = "results/smoke.json"

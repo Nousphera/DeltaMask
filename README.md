@@ -32,3 +32,9 @@ The conference took place in 2024; the [TU/e publication record](https://researc
 ## License
 
 The inherited repository does not include a license. This copy does not introduce one; the paper's license is separate from permission to reuse repository contents.
+<!-- nousphera-project-resources -->
+## Project resources
+
+[Project page](https://nousphera.github.io/DeltaMask/) · [Research overview](https://nousphera.github.io/projects/deltamask/) · [A0 poster](https://nousphera.github.io/DeltaMask/poster.pdf) · [Paper](https://pure.tue.nl/ws/portalfiles/portal/349909071/2024337517.pdf)
+
+This repository hosts the paper’s project page, poster and citation. **The implementation is not included in this release.** Code will be added here after the final paper implementation has been identified and prepared for release.

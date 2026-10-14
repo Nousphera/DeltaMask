@@ -60,6 +60,7 @@ Launch the actual Flower `ClientApp` and `ServerApp` with two local SuperNodes:
 ```bash
 mkdir -p results
 export FLWR_HOME="$HOME/.flwr-deltamask"
+export FLWR_LOCAL_SUPERLINK_HTTP_API_PORT=39134
 flwr run . local \
   --federation-config 'num-supernodes=2 client-resources-num-cpus=1 client-resources-num-gpus=0.0 init-args-num-cpus=2' \
   --run-config "output=\"$PWD/results/flower.json\"" --stream

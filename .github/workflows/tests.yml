@@ -11,3 +11,17 @@ jobs:
       - run: pip install -c constraints.txt -r requirements.txt
       - run: pytest -q
       - run: deltamask-train --config configs/smoke.toml
+      - name: Native Flower App smoke
+        env:
+          FLWR_DISABLE_RUNTIME_DEPENDENCY_INSTALLATION: '1'
+        run: |
+          flwr run . local --stream --run-config "output='$(pwd)/runs/native-flower.json'" \
+            --federation-config 'num-supernodes=2 client-resources-num-cpus=1 init-args-num-cpus=2'
+          python - <<'PYVERIFY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("runs/native-flower.json").read_text())
+          assert len(result["rounds"]) == 2
+          assert all(row["clients"] == 2 and row["payload_bytes"] > 0 for row in result["rounds"])
+          assert Path("runs/native-flower.npz").is_file()
+          PYVERIFY

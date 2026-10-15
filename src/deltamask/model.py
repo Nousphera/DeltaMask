@@ -1,8 +1,8 @@
 """Frozen pretrained weights with trainable stochastic masks.
 
-Adapted from the recovered DeltaMask model/vit.py and network.py. The Bernoulli
-straight-through estimator is explicitly identity in probability space; unlike
-the recovered extra probability multiplier, sigmoid supplies its own derivative.
+Adapted from DeltaMask model/vit.py and network.py; see PROVENANCE.md.
+The Bernoulli straight-through estimator is identity in probability space;
+sigmoid supplies its own derivative.
 """
 
 import copy
@@ -78,7 +78,7 @@ class Model(nn.Module):
             return
         for block in self.blocks:
             mask_children(block)
-        # CLIP projection and classifier were also masked in the recovered code.
+        # Apply masks to the CLIP projection and classifier as well.
         if self.kind == "clip":
             self.backbone.visual_projection = MaskedLayer(
                 self.backbone.visual_projection

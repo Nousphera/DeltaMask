@@ -52,7 +52,7 @@ def validate(cfg):
 
 
 def kappa_at(cfg, round_id):
-    # Recovered scheduler horizon (R-1)//16, clamped at its endpoint instead of cycling.
+    # Scheduler horizon (R-1)//16, clamped at its endpoint instead of cycling.
     horizon = max(1, (cfg["num-rounds"] - 1) // 16)
     fraction = min(1.0, max(0.0, (round_id - 1) / horizon))
     return 1 - (1 - cfg["kappa"]) * 0.5 * (1 + math.cos(math.pi * fraction))

@@ -1,7 +1,14 @@
 # Contributing
 
-Keep changes focused and include the context needed to reproduce an issue. Do not commit datasets, private credentials, generated experiment outputs, or model checkpoints.
+Include the command, configuration, Python version and relevant error output when reporting an issue. For dataset issues, include the preparation command and manifest summary without sharing private records.
 
-This repository currently contains project references only. For implementation changes, use the implementation repository linked in the README when available. Check publication titles, authors, dates, and links against primary sources.
+Install the environment with `scripts/setup.sh`, make focused changes and run:
 
-Retain existing attribution and licenses. See [PROVENANCE.md](PROVENANCE.md) for the source snapshot.
+```bash
+python -m pip check
+python -m pytest -q
+```
+
+Keep dataset files, credentials, generated results and model checkpoints out of Git. Include regressions for changes to training, partitioning, aggregation or serialization, and update the corresponding setup or experiment instructions.
+
+Preserve source attribution and component licenses in [PROVENANCE.md](PROVENANCE.md). When changing native code, verify the source build as well as Python tests.

@@ -57,7 +57,7 @@ def context_hash(q, seed, round_id):
 def encode(p, q, *, seed, round_id, kappa):
     p, q = probabilities(p), probabilities(q)
     reference = sample_mask(q, seed, round_id)
-    # Common random numbers reproduce the recovered implementation's coupling,
+    # Couple local and reference masks through common random numbers,
     # with one flat stream (no repeated per-layer seed) and a new stream per round.
     local = sample_mask(p, seed, round_id)
     selected = selected_changes(p, q, local, reference, kappa)

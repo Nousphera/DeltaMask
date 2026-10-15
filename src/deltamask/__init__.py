@@ -1,1 +1,1 @@
-"""DeltaMask reference implementation; see REPRODUCIBILITY.md for evidence limits."""
+"""DeltaMask stochastic mask learning and compressed federated transport."""

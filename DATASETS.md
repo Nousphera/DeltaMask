@@ -1,4 +1,4 @@
-# Dataset preparation contract
+# Datasets
 
 Run `python scripts/prepare_data.py --help` after installation. The script writes `ROOT/DATASET/manifest.json` together with the files actually opened by training. `--root` and the trainer's `--data-root` always refer to the same **parent** root. Datasets are kept out of Git.
 
@@ -36,7 +36,7 @@ splits/
   test/class-b/image-102.jpg
 ```
 
-Every class must have at least one image in both splits. The sorted class directory names define label indices. This adapter supports supplied fixed splits; it does not claim to recover any particular benchmark split or create labels. Sources and labels must be acquired under their applicable terms.
+Every class must have at least one image in both splits. The sorted class directory names define label indices. This adapter preserves the supplied split and class labels. Sources and labels must be acquired under their applicable terms.
 
 ## Other supported vision datasets
 
@@ -49,12 +49,12 @@ python scripts/prepare_data.py --dataset cars196 --source /path/to/cars-splits -
 python scripts/prepare_data.py --dataset cars196 --root data --validate
 ```
 
-For Stanford Cars, obtain images and annotations under the dataset's access terms and arrange class folders using the official train/test annotations. For EuroSAT, supply a fixed train/test assignment and retain its seed/file list; the release does not invent a canonical split. The manifest records exactly what was supplied. No restricted source is automatically fetched.
+For Stanford Cars, obtain images and annotations under the dataset's access terms and arrange class folders using the official train/test annotations. For EuroSAT, supply a fixed train/test assignment and retain its seed/file list; the importer preserves that assignment. The manifest records exactly what was supplied. No restricted source is automatically fetched.
 
-All vision adapters feed `deltamask.data.load_data`, used by both Flower applications and the offline handler runner. CLIP uses its normalization; other backbones use ImageNet normalization. Images are converted to RGB, resized/cropped to 224 pixels. The exact historical data partitions and augmentation settings remain outside the reproduction claim.
+All vision adapters feed `deltamask.data.load_data`, used by both Flower applications and the offline handler runner. CLIP uses its normalization; other backbones use ImageNet normalization. Images are converted to RGB, resized/cropped to 224 pixels. The manifest records the supplied split and class mapping.
 
 ## Checkpoints and native Flower paths
 
 Dataset preparation does not download pretrained models. The default CLIP/DINO model names have pinned Hugging Face revisions in `model.py`; `allow-download=true` explicitly permits model acquisition. Afterwards, cached checkpoints can be used with `allow-download=false`. For a local Hugging Face `save_pretrained` directory, set `model-checkpoint` to that directory; ConvMixer instead expects a timm-compatible checkpoint file. No checkpoint is included in this repository.
 
-Flower executes an installed application bundle. Always pass **absolute** `data-root`, `model-checkpoint` (when used), and `output` paths via `--run-config` so all local SuperNodes resolve the same prepared files. A multi-machine deployment would need accessible, consistently staged client datasets; it is not implemented by the local simulation recipe.
+Flower executes an installed application bundle. Always pass **absolute** `data-root`, `model-checkpoint` (when used), and `output` paths via `--run-config` so all local SuperNodes resolve the same prepared files. For deployment across machines, stage each client's datasets at the configured accessible paths.

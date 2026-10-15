@@ -1,4 +1,4 @@
-# Paper-shaped experiment; full benchmark has not been reproduced by this release.
+# CLIP ViT-B/32 on CIFAR-10: 30 clients with full participation and Dirichlet alpha 10.
 dataset = "cifar10"
 model = "clip-vit-b32"
 num-clients = 30

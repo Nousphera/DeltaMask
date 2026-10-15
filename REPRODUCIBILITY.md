@@ -36,7 +36,7 @@ The default synthetic setup uses deterministic eight-dimensional vectors, a fixe
 
 ## Flower execution and resources
 
-[README.md](README.md#run) gives the primary `flwr run . local` command. It launches the `ClientApp` and `ServerApp` through Flower's Ray simulation backend. `num-clients` must match `num-supernodes`; configure per-client CPU/GPU resources and the available Ray CPU budget explicitly. Every selected client must reply; dropout handling is unsupported.
+[README.md](README.md#training) gives the primary `flwr run . local` command. It launches the `ClientApp` and `ServerApp` through Flower's Ray simulation backend. `num-clients` must match `num-supernodes`; configure per-client CPU/GPU resources and the available Ray CPU budget explicitly. Every selected client must reply; dropout handling is unsupported.
 
 Use absolute data, checkpoint and output paths: Flower executes an installed application bundle with its own working directory. Its C++ extension is built from the bundled native source. The full vision stack is an application dependency so isolated runtimes have the same loaders as the host environment.
 

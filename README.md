@@ -2,17 +2,23 @@
 
 **DeltaMask: Minimizing Communication in Federated Fine-Tuning of Vision Foundation Models**
 
-[<img src="docs/assets/icons/paper.svg" width="16" height="16" alt=""> Paper](https://doi.org/10.1109/BigData62323.2024.10825398) · [<img src="docs/assets/icons/project.svg" width="16" height="16" alt=""> Project](https://nousphera.github.io/DeltaMask/) · [<img src="docs/assets/icons/code.svg" width="16" height="16" alt=""> Code](https://github.com/Nousphera/DeltaMask) · [Citation](CITATION.cff)
+[<img src="docs/assets/icons/paper.svg" width="16" height="16" alt=""> Paper](https://doi.org/10.1109/BigData62323.2024.10825398) · [<img src="docs/assets/icons/project.svg" width="16" height="16" alt=""> Project](https://nousphera.github.io/projects/deltamask/) · [<img src="docs/assets/icons/code.svg" width="16" height="16" alt=""> Code](https://github.com/Nousphera/DeltaMask) · [<img src="docs/assets/icons/paper.svg" width="16" height="16" alt=""> Preprint](https://arxiv.org/abs/2311.17299) · [<img src="docs/assets/icons/paper.svg" width="16" height="16" alt=""> Poster](https://nousphera.github.io/assets/posters/deltamask-a0-landscape.pdf) · [Citation](CITATION.cff)
 
 Vasileios Tsouvalas · Yuki M. Asano · Aaqib Saeed
 
 IEEE BigData 2024 · Published January 2025
 
+<p align="center">
+  <a href="https://nousphera.github.io/projects/deltamask/#overview"><img src="docs/assets/readme/overview.webp" width="880" alt="DeltaMask: clients compare binary masks, rank changed positions, encode a probabilistic filter as PNG, and send it for server reconstruction and Bayesian aggregation."></a>
+</p>
+
+*DeltaMask's mask-update pipeline, from Figure 2 of the [accepted manuscript](https://pure.tue.nl/ws/portalfiles/portal/349909071/2024337517.pdf#page=4). Explore the [method and results](https://nousphera.github.io/projects/deltamask/#overview).*
+
 ## Abstract
 
 Foundation Models (FMs) have revolutionized machine learning with their adaptability and high performance across tasks; yet, their integration into Federated Learning (FL) is challenging due to substantial communication overhead from their extensive parameterization. Current communication-efficient FL strategies, such as gradient compression, reduce bitrates to around 1 bit-per-parameter (bpp). However, these approaches fail to harness the characteristics of FMs, with their large number of parameters still posing a challenge to communication efficiency, even at these bitrate regimes. In this work, we present DeltaMask, a novel method that efficiently fine-tunes FMs in FL at an ultra-low bitrate, well below 1 bpp. DeltaMask employs stochastic masking to detect highly effective subnetworks within FMs and leverage stochasticity and sparsity in client masks to compress updates into a compact grayscale image using probabilistic filters, deviating from traditional weight training approaches. Our comprehensive evaluations across various datasets and architectures demonstrate DeltaMask efficiently achieves bitrates as low as 0.09 bpp, enhancing communication efficiency while maintaining FMs performance, as measured on 8 datasets and 5 pre-trained models of various network architectures.
 
-## Setup
+## Installation
 
 Python 3.12 and a C++17 compiler are tested. Package metadata permits Python 3.11–3.13; Linux/macOS are supported targets and native Windows is untested (use WSL2). Linux needs a compiler and Python development headers, for example `build-essential python3-dev`. macOS needs Python 3.12 and installed Command Line Tools. The real four-wise Binary Fuse extension builds from the bundled C++ source; no prebuilt Linux binary is redistributed.
 
@@ -38,7 +44,7 @@ python -m pip install -c constraints.txt -r requirements.txt
 
 Installation and the smoke test download no datasets or model weights. Vision libraries are application dependencies so Flower's isolated runtime also installs them. After pulling changes, rerun installation to replace any older installed package.
 
-## Datasets
+## Data
 
 Prepare official CIFAR data separately from model acquisition:
 
@@ -55,7 +61,7 @@ The output is `data/cifar10/`, containing torchvision's original 50,000/10,000 t
 | `svhn`, `fashion-mnist`, `emnist`, `food101` | Explicit torchvision download; EMNIST balanced variant |
 | `eurosat`, `cars196`, `imagefolder` | Import acquired `train/CLASS/*` and `test/CLASS/*` folders with fixed splits |
 
-## Run
+## Training
 
 Launch the actual Flower `ClientApp` and `ServerApp` with two local SuperNodes:
 
@@ -89,11 +95,57 @@ deltamask-train --help
 
 It uses the same app handlers through an in-process transport. Supported pretrained backbones are CLIP ViT-B/32 and ViT-L/14, DINOv2 Base and Small, and ConvMixer-768/32. [DATASETS.md](DATASETS.md) explains cached/local checkpoints. Use absolute paths with native Flower because its installed bundle has its own working directory.
 
-## Outputs
+## Evaluation
+
+Both training entry points evaluate the server model on the prepared test split after every round. Evaluation samples stochastic masks with a recorded round-specific seed. The JSON `rounds` list includes accuracy, loss, `payload_bytes` and `uplink_bpp_per_client`.
+
+Inspect the final evaluation from the Flower CIFAR run above:
+
+```bash
+python - <<'PYTHON'
+import json
+from pathlib import Path
+report = json.loads(Path("results/clip-cifar10-check.json").read_text())
+print(json.dumps(report["rounds"][-1], indent=2))
+PYTHON
+```
+
+Accuracy is a fraction in `[0, 1]`. Uplink bpp measures the encoded mask payload, including metadata and PNG, per participating client and masked parameter. Classifier setup and downlink bytes are reported separately; see [byte accounting](REPRODUCIBILITY.md#outputs-and-byte-accounting).
+
+### Saved outputs
 
 The JSON report saves configuration, input-manifest hash, package versions, accuracy, update bytes, score downlink bytes, classifier setup traffic and a final-score digest. A sibling `.npz` contains mask scores and the probed classifier without pickle. Existing output/checkpoint paths are preserved; choose another name to rerun. Run data validation before experiments; training checks split and label identity while full file hashes are verified explicitly by preparation.
 
 The native protocol sends four-wise BFuse8 fingerprints compressed as PNG, not client score arrays. Small fixtures have substantial protocol-header overhead. See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for initialization, sampling, model revisions, evaluation and byte accounting. Payloads contain visible filter fingerprints and public sampling metadata.
+
+## Pretrained models
+
+Select a backbone with the Flower `model` configuration key. CLIP and DINOv2 use the pinned revisions in [model.py](src/deltamask/model.py); set `allow-download=true` to acquire weights, or supply a cache/local checkpoint as described in [DATASETS.md](DATASETS.md).
+
+| Model option | Pretrained backbone |
+|---|---|
+| `clip-vit-b32` | OpenAI CLIP ViT-B/32 |
+| `clip-vit-l14` | OpenAI CLIP ViT-L/14 |
+| `dinov2-base` | DINOv2 Base |
+| `dinov2-small` | DINOv2 Small |
+| `convmixer-768-32` | timm `convmixer_768_32.in1k` |
+
+Training saves the learned mask scores and classifier in `.npz`; the frozen backbone is loaded from its recorded model revision. The default `tiny` backbone is randomly initialized.
+
+## Results
+
+The accepted manuscript reports the following averages across eight image-classification datasets with CLIP ViT-B/32 and 30 clients. The IID setting uses Dirichlet α=10, full participation and 100 rounds; the non-IID setting uses α=0.1, 20% participation and 300 rounds. Both use one local epoch. Values are from [Tables II and III](https://pure.tue.nl/ws/portalfiles/portal/349909071/2024337517.pdf#page=11).
+
+| Method | IID accuracy ↑ (%) | IID bitrate ↓ (bpp) | Non-IID accuracy ↑ (%) | Non-IID bitrate ↓ (bpp) |
+|---|---:|---:|---:|---:|
+| Fine-tuning | 88.08 | 32 | 83.19 | 32 |
+| FedMask | 79.23 | 1.0 | 68.86 | 1.0 |
+| EDEN | 84.14 | 0.691 | 78.56 | 0.715 |
+| DeepReduce | 76.53 | 1.089 | 73.90 | 1.173 |
+| FedPM | 86.07 | 0.872 | 81.64 | 0.948 |
+| **DeltaMask** | **85.44** | **0.151** | **81.13** | **0.233** |
+
+DeltaMask is within 0.63 percentage points of FedPM in the IID setting and 0.51 points in the non-IID setting, at the lower reported bitrates. The fine-tuning reference adapts the same last five backbone blocks targeted by masking. The settings use different round counts, so bpp alone is not total training communication. See the [project findings](https://nousphera.github.io/projects/deltamask/#findings) for per-backbone results and study details.
 
 ## Citation
 

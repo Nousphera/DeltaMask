@@ -32,14 +32,14 @@ source "$HOME/.venvs/deltamask/bin/activate"
 python -m pytest -q
 ```
 
-The setup script creates the venv, installs the constraints-pinned requirements including Flower simulation and vision dependencies, and runs `pip check`. On macOS it selects the installed standalone Command Line Tools. Manual equivalent:
+The setup script creates the venv, installs `requirements.txt` including Flower simulation and vision dependencies, and runs `pip check`. On macOS it selects the installed standalone Command Line Tools. Manual equivalent:
 
 ```bash
 python3.12 -m venv "$HOME/.venvs/deltamask"
 source "$HOME/.venvs/deltamask/bin/activate"
 # macOS with standalone Command Line Tools:
 # export DEVELOPER_DIR=/Library/Developer/CommandLineTools
-python -m pip install -c constraints.txt -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 Installation and the smoke test download no datasets or model weights. Vision libraries are application dependencies so Flower's isolated runtime also installs them. After pulling changes, rerun installation to replace any older installed package.

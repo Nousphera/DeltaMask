@@ -10,6 +10,6 @@ files = {
     for path in sorted(root.rglob("*"))
     if path.is_file() and path.suffix in {".h", ".cpp"}
 }
-for name in ("LICENSE", "THIRD_PARTY_LICENSES"):
+for name in ("LICENSE",):
     files[name] = (project / name).read_text()
 (root / "sources.json").write_text(json.dumps(files, indent=2) + "\n")

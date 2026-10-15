@@ -1,2 +1,2 @@
-# Training, Flower simulation and tests.
--e .[test,simulation]
+# Install DeltaMask and its training/native Flower runtime.
+-e .

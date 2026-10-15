@@ -88,7 +88,9 @@ From the repository root, launch your chosen method as a **Flower App**:
 
 ```bash
 # Shared experiment settings
-common=(--dataset cifar10 --model clip-vit-b32 --setting iid --device cuda)
+common=(--dataset cifar10 --model clip-vit-b32
+        --nr-clients 30 --rounds 100 --participation 1.0
+        --alpha 10 --batch-size 64 --device cuda)
 
 # DeltaMask (ours)
 python scripts/run_experiment.py "${common[@]}" --method deltamask
@@ -106,21 +108,8 @@ python scripts/run_experiment.py "${common[@]}" --method fedpm
 python scripts/run_experiment.py "${common[@]}" --method fedmask
 ```
 
-| Setting | Clients | Rounds | Participation | Dirichlet α |
-| :--- | ---: | ---: | ---: | ---: |
-| `iid` | 30 | 100 | 100% | 10 |
-| `noniid` | 30 | 300 | 20% | 0.1 |
-
-Use `--setting noniid` for heterogeneous clients, `--seed` for repeated runs, or `--device cpu` / `--device mps` for local execution. All methods share a one-round classifier warm-up; the mask methods adapt the final five blocks, projection and classifier.
-
 > [!NOTE]
-> Metrics and learned weights are saved to `results/<method>-<model>-<dataset>-<setting>-seed<seed>.{json,npz}`. FedPM uses lossless packed bits; FedMask follows the paper experiment's threshold-training variant with stochastic Bayesian aggregation.
-
-Re-evaluate a saved run:
-
-```bash
-python -m deltamask.evaluate results/deltamask-clip-vit-b32-cifar10-iid-seed42.json
-```
+> All methods share a one-round classifier warm-up; the mask methods adapt the final five blocks, projection and classifier. FedPM uses lossless packed bits; FedMask follows the paper experiment's threshold-training variant with stochastic Bayesian aggregation.
 
 ## Citation
 
@@ -137,4 +126,4 @@ python -m deltamask.evaluate results/deltamask-clip-vit-b32-cifar10-iid-seed42.j
 }
 ```
 
-[MIT License](LICENSE) · [Third-party licenses](THIRD_PARTY_LICENSES)
+[License](LICENSE)

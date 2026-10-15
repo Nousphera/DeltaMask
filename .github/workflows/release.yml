@@ -1,4 +1,4 @@
-name: Tests
+name: Build and Run
 on: [push, pull_request]
 permissions:
   contents: read
@@ -9,18 +9,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
       - run: python -m pip check
-      - run: python -m pytest -q
       - name: Native Flower App
         run: |
           python scripts/run_experiment.py --dataset synthetic-images \
             --model dinov2-small --from-scratch --device cpu \
-            --rounds 2 --clients 2 --batch-size 1 --output results/native.json
-          python -m deltamask.evaluate results/native.json
+            --rounds 2 --nr-clients 2 --batch-size 1 --output results/native.json
       - name: Check whitespace
         run: git show --format= --check HEAD

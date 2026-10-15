@@ -1,4 +1,4 @@
-// Modified 2026-10-15: standalone includes; safe minimum size. See THIRD_PARTY_LICENSES.
+// Modified 2026-10-15: standalone includes; safe minimum size. See LICENSE.
 #ifndef XOR_BINARY_FUSE_FILTER_XOR_FILTER_H_
 #define XOR_BINARY_FUSE_FILTER_XOR_FILTER_H_
 

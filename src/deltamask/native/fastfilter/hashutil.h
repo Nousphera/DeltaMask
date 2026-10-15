@@ -29,7 +29,7 @@ class TwoIndependentMultiplyShift {
   inline uint64_t operator()(uint64_t key) const {
     return (add_ + multiply_ * static_cast<decltype(multiply_)>(key)) >> 64;
   }
-  
+
 };
 
 

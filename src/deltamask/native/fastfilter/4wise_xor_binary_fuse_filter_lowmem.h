@@ -130,15 +130,15 @@ Status XorBinaryFuseFilter<ItemType, FingerprintType, HashFamily>::AddAll(
   // so we only have 6 bits for counting;
   // but that's sufficient
   uint8_t *t2count = new uint8_t[arrayLength];
-  
+
   uint64_t *t2hash = new uint64_t[arrayLength];
 
   size_t *alone = new size_t[arrayLength];
   hashIndex = 0;
-  
+
   // the array h0, h1, h2, h3, h0, h1, h2, h3
   size_t h0123[7];
-  
+
   size_t hi0123[7];
   hi0123[0] = 0;
   hi0123[1] = 1;
@@ -212,10 +212,10 @@ Status XorBinaryFuseFilter<ItemType, FingerprintType, HashFamily>::AddAll(
         // It is still there!
         uint64_t hash = t2hash[index];
         int found = t2count[index] & 3;
-        
+
         reverseH[reverseOrderPos] = found;
         reverseOrder[reverseOrderPos] = hash;
-        
+
         h0123[1] = getHashFromHash(hash, 1);
         h0123[2] = getHashFromHash(hash, 2);
         h0123[3] = getHashFromHash(hash, 3);
@@ -263,7 +263,7 @@ Status XorBinaryFuseFilter<ItemType, FingerprintType, HashFamily>::AddAll(
   delete[] alone;
   delete[] t2count;
   delete[] t2hash;
-  
+
   for (int i = reverseOrderPos - 1; i >= 0; i--) {
     uint64_t hash = reverseOrder[i];
     int found = reverseH[i];

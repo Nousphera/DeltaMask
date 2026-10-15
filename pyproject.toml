@@ -27,6 +27,8 @@ deltamask = ["native/*.cpp", "native/*.json", "native/fastfilter/*.h"]
 
 [tool.setuptools.data-files]
 "share/deltamask/configs" = ["configs/*.toml"]
+"share/deltamask/tests" = ["tests/*.py"]
+"share/deltamask/scripts" = ["scripts/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

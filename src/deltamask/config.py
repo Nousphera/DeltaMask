@@ -2,9 +2,24 @@
 
 import math
 
+METHODS = {
+    "deltamask": "DeltaMask (four-wise BFuse8 and PNG)",
+    "fedpm": "FedPM (lossless packed-bit transport)",
+    "fedmask": "FedMask (threshold-training variant)",
+    "finetune": "Fine-tuning (weighted FedAvg)",
+    "linear-probe": "Linear probing (weighted FedAvg)",
+}
+MASK_METHODS = {"deltamask", "fedpm", "fedmask"}
+
 
 def defaults():
     return {
+        "method": "deltamask",
+        "mask-epsilon": 0.01,
+        "numerical-epsilon": 1e-7,
+        "registration-timeout": 120.0,
+        "reply-timeout": 3600.0,
+        "save-updates": False,
         "num-rounds": 2,
         "num-clients": 2,
         "participation": 1.0,
@@ -26,10 +41,13 @@ def defaults():
         "device": "cpu",
         "model-revision": "",
         "model-checkpoint": "",
+        "model-root": "checkpoints",
     }
 
 
 def validate(cfg):
+    if cfg["method"] not in METHODS:
+        raise ValueError(f"method must be one of {', '.join(METHODS)}")
     for key in [
         "num-rounds",
         "num-clients",
@@ -42,6 +60,15 @@ def validate(cfg):
     for key in ["learning-rate", "probe-learning-rate", "alpha"]:
         if not math.isfinite(cfg[key]) or cfg[key] <= 0:
             raise ValueError(f"{key} must be positive")
+    for key in ["registration-timeout", "reply-timeout"]:
+        if not math.isfinite(cfg[key]) or cfg[key] <= 0:
+            raise ValueError(f"{key} must be finite and positive")
+    if not 0 <= cfg["mask-epsilon"] < .5:
+        raise ValueError("mask-epsilon must be in [0,.5)")
+    if not 0 < cfg["numerical-epsilon"] < .5:
+        raise ValueError("numerical-epsilon must be in (0,.5)")
+    if type(cfg["save-updates"]) is not bool:
+        raise ValueError("save-updates must be a boolean")
     if not 0 < cfg["participation"] <= 1 or not 0 <= cfg["kappa"] <= 1:
         raise ValueError("Invalid participation or kappa")
     if cfg["model"] not in {
@@ -60,7 +87,7 @@ def validate(cfg):
         raise ValueError(
             "pretrained=false initializes from scratch; omit model-checkpoint"
         )
-    if cfg["seed"] < 0 or cfg["seed"] >= 2**32:
+    if type(cfg["seed"]) is not int or cfg["seed"] < 0 or cfg["seed"] >= 2**32:
         raise ValueError("seed must be a uint32")
     return cfg
 

@@ -56,9 +56,14 @@ def context_hash(q, seed, round_id):
 
 def encode(p, q, *, seed, round_id, kappa):
     p, q = probabilities(p), probabilities(q)
+    if p.shape != q.shape:
+        raise ValueError("Probability shapes differ")
     reference = sample_mask(q, seed, round_id)
     # Couple local and reference masks through common random numbers,
     # with one flat stream (no repeated per-layer seed) and a new stream per round.
+    # This is shared ACROSS clients too, as in the recovered DeltaMask source.
+    # It is not independent client sampling, so an independent-sample variance
+    # bound must not be applied to this coupling. FedPM uses sample_client_mask.
     local = sample_mask(p, seed, round_id)
     selected = selected_changes(p, q, local, reference, kappa)
     header = {
@@ -89,6 +94,70 @@ def encode(p, q, *, seed, round_id, kappa):
         "changed": int(np.count_nonzero(local != reference)),
         "selected": len(selected),
     }
+
+
+def sample_client_mask(p, seed, round_id, client_id):
+    """Independent, reproducible client streams for the lossless mask baselines."""
+    p = probabilities(p)
+    rng = np.random.default_rng(np.random.SeedSequence([seed, round_id, client_id, 1]))
+    return rng.random(p.size) < p
+
+
+def encode_binary(mask, *, seed, round_id, client_id):
+    """Lossless packed bits, not an arithmetic/entropy coding estimate."""
+    mask = np.asarray(mask)
+    if mask.ndim != 1 or not mask.size or not np.isin(mask, [0, 1]).all():
+        raise ValueError("Expected flat binary mask")
+    wire = (b"BPM1" + struct.pack("<QQQQ", mask.size, seed, round_id, client_id)
+            + np.packbits(mask, bitorder="little").tobytes())
+    return wire, {"payload_bytes": len(wire), "png_bytes": 0}
+
+
+def decode_binary(wire, dimension, *, seed, round_id, client_id):
+    if (not isinstance(wire, bytes) or len(wire) != 36 + (dimension + 7) // 8
+            or wire[:4] != b"BPM1"
+            or struct.unpack("<QQQQ", wire[4:36]) != (dimension, seed, round_id, client_id)):
+        raise ValueError("Invalid binary mask message or context")
+    packed = np.frombuffer(wire[36:], dtype=np.uint8)
+    if dimension % 8 and int(packed[-1]) >> (dimension % 8):
+        raise ValueError("Nonzero padding bits")
+    return np.unpackbits(packed, bitorder="little", count=dimension).astype(bool)
+
+
+def encode_parameters(state):
+    """Actual uncompressed NPZ message; keys/shapes are checked against the model."""
+    stream = io.BytesIO()
+    np.savez(stream, **{name: value.detach().cpu().numpy() for name, value in state.items()})
+    return stream.getvalue()
+
+
+def decode_parameters(wire, expected):
+    import zipfile
+    import torch
+    if not isinstance(wire, bytes):
+        raise ValueError("Expected parameter bytes")
+    # Bound expansion before NumPy loads members. Parameter transport is uncompressed.
+    limit = sum(v.numel() * v.element_size() for v in expected.values()) + 4096 * len(expected)
+    if len(wire) > limit:
+        raise ValueError("Oversized parameter message")
+    try:
+        with zipfile.ZipFile(io.BytesIO(wire)) as archive:
+            if (len(archive.infolist()) != len(expected)
+                    or sum(i.file_size for i in archive.infolist()) > limit):
+                raise ValueError("Invalid parameter archive size")
+        with np.load(io.BytesIO(wire), allow_pickle=False) as archive:
+            if set(archive.files) != set(expected):
+                raise ValueError("Parameter names differ")
+            state = {}
+            for name, target in expected.items():
+                arr = archive[name]
+                if (arr.shape != tuple(target.shape) or arr.dtype != np.dtype("float32")
+                        or not np.isfinite(arr).all()):
+                    raise ValueError("Parameter shape, dtype or finiteness mismatch")
+                state[name] = torch.from_numpy(arr.copy())
+            return state
+    except (OSError, KeyError, EOFError, zipfile.BadZipFile, TypeError) as exc:
+        raise ValueError("Invalid parameter archive") from exc
 
 
 def decode(wire, q, *, seed, round_id):

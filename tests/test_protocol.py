@@ -43,9 +43,9 @@ def test_bytes_transport_seeded_reference_and_empty_changes():
 
 def test_bayesian_counts_reset_every_inverse_participation():
     state=BayesianMask(3,participation=.5)
-    np.testing.assert_allclose(state.update([np.array([1,0,1])],1),[1-1e-7,1e-7,1-1e-7])
-    np.testing.assert_allclose(state.update([np.array([0,1,1])],2),[1e-7,1-1e-7,1-1e-7])
-    np.testing.assert_allclose(state.update([np.array([1,0,1])],3),[.5,.5,1-1e-7])
+    np.testing.assert_allclose(state.update([np.array([1,0,1])],1),[.99,.01,.99])
+    np.testing.assert_allclose(state.update([np.array([0,1,1])],2),[.01,.99,.99])
+    np.testing.assert_allclose(state.update([np.array([1,0,1])],3),[.5,.5,.99])
 
 @pytest.mark.parametrize('size',[1,2,3,17,100])
 def test_small_filters(size):

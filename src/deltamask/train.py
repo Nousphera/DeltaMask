@@ -9,7 +9,7 @@ from flwr.app import Context, RecordDict
 from flwr.supercore.task_identity import TaskIdentity
 from .client_app import app as client_app
 from .server_app import app as server_app
-from .config import defaults, validate
+from .config import defaults, validate, METHODS
 
 
 class LocalGrid:
@@ -36,7 +36,7 @@ class LocalGrid:
 
 def run(cfg):
     cfg = validate(defaults() | cfg)
-    torch.set_num_threads(1)
+    torch.set_num_threads(cfg["torch-threads"])
     context = Context(
         run_id=1, node_id=0, node_config={}, state=RecordDict(), run_config=cfg
     )
@@ -54,6 +54,15 @@ def run(cfg):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path)
+    parser.add_argument("--method", choices=METHODS,
+                        help="; ".join(f"{k}: {v}" for k, v in METHODS.items()))
+    parser.add_argument("--dataset")
+    parser.add_argument("--model")
+    parser.add_argument("--device")
+    parser.add_argument("--data-root")
+    parser.add_argument("--model-root")
+    parser.add_argument("--model-checkpoint")
+    parser.add_argument("--from-scratch", action="store_true")
     parser.add_argument("--rounds", type=int)
     parser.add_argument("--clients", type=int)
     parser.add_argument("--seed", type=int)
@@ -68,6 +77,13 @@ def main():
     if args.config:
         cfg.update(tomllib.loads(args.config.read_text()))
     for key, value in [
+        ("method", args.method),
+        ("dataset", args.dataset),
+        ("model", args.model),
+        ("device", args.device),
+        ("data-root", args.data_root),
+        ("model-root", args.model_root),
+        ("model-checkpoint", args.model_checkpoint),
         ("num-rounds", args.rounds),
         ("num-clients", args.clients),
         ("seed", args.seed),
@@ -77,6 +93,8 @@ def main():
             cfg[key] = value
     if args.download:
         cfg["allow-download"] = True
+    if args.from_scratch:
+        cfg["pretrained"] = False
     run(cfg)
 
 

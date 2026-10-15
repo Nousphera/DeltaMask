@@ -1,27 +1,26 @@
-name: tests
+name: Tests
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   cpu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: pytest -q
-      - run: deltamask-train --config configs/smoke.toml
-      - name: Native Flower App smoke
-        env:
-          FLWR_DISABLE_RUNTIME_DEPENDENCY_INSTALLATION: '1'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pip check
+      - run: python -m pytest -q
+      - name: Native Flower App
         run: |
-          flwr run . local --stream --run-config "dataset='synthetic-images' model='dinov2-small' pretrained=false num-rounds=1 output='$(pwd)/runs/native-flower.json'" \
-            --federation-config 'num-supernodes=2 client-resources-num-cpus=1 init-args-num-cpus=2'
-          python - <<'PYVERIFY'
-          import json
-          from pathlib import Path
-          result = json.loads(Path("runs/native-flower.json").read_text())
-          assert len(result["rounds"]) == 1
-          assert all(row["clients"] == 2 and row["payload_bytes"] > 0 for row in result["rounds"])
-          assert Path("runs/native-flower.npz").is_file()
-          PYVERIFY
+          python scripts/run_experiment.py --dataset synthetic-images \
+            --model dinov2-small --from-scratch --device cpu \
+            --rounds 2 --clients 2 --batch-size 1 --output results/native.json
+          python -m deltamask.evaluate results/native.json
+      - name: Check whitespace
+        run: git show --format= --check HEAD

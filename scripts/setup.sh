@@ -11,7 +11,7 @@ if [[ "$(uname -s)" == Darwin && -d /Library/Developer/CommandLineTools ]]; then
   export DEVELOPER_DIR="${DEVELOPER_DIR:-/Library/Developer/CommandLineTools}"
 fi
 if [[ ! -e "$venv_dir" ]]; then
-  "$python_bin" -m venv "$venv_dir"
+  "$python_bin" -m venv --prompt deltamask "$venv_dir"
 elif [[ ! -f "$venv_dir/pyvenv.cfg" || ! -x "$venv_dir/bin/python" ]]; then
   printf 'Refusing non-venv path: %s\n' "$venv_dir" >&2
   exit 2

@@ -1,0 +1,74 @@
+{
+  "walkthrough": "https://nousphera.github.io/projects/deltamask/",
+  "scene_order": [
+    "Start round",
+    "Learn locally",
+    "Select changes",
+    "Upload",
+    "Reconstruct",
+    "Aggregate"
+  ],
+  "duration_seconds": 30,
+  "artifacts": [
+    {
+      "name": "method-light",
+      "width": 960,
+      "height": 740,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-light.gif",
+      "sha256": "ef8bea125a758f800cd7e9ee2eadfe882b5fb790040f80cd1fb410e7e3de4a74",
+      "bytes": 408977
+    },
+    {
+      "name": "method-light",
+      "width": 960,
+      "height": 740,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-light.mp4",
+      "sha256": "35df6022f35d8d99859e9fc0decc8868b7b85ebe6e700271f41696509999d7df",
+      "bytes": 294345
+    },
+    {
+      "name": "method-dark",
+      "width": 960,
+      "height": 740,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-dark.gif",
+      "sha256": "bea8d8c3b72f4669cb7820dee2e6b68a9ab26106c2e4a96e33a2ff500e6e7482",
+      "bytes": 409048
+    },
+    {
+      "name": "method-dark",
+      "width": 960,
+      "height": 740,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-dark.mp4",
+      "sha256": "3969e0e18d2d19c8f7fb8c81ad58b1296dd3b8bbce2a13992bb278f2f0a5cb3d",
+      "bytes": 272630
+    },
+    {
+      "name": "method-light-mobile",
+      "width": 840,
+      "height": 1592,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-light-mobile.gif",
+      "sha256": "c5e16aed8279acdaa662908dcd50b2a3b6eae5249a3b12438319fbb0127d93aa",
+      "bytes": 641562
+    },
+    {
+      "name": "method-dark-mobile",
+      "width": 840,
+      "height": 1592,
+      "frames": 150,
+      "fps": 5,
+      "file": "method-dark-mobile.gif",
+      "sha256": "da555fd758263e63ffbe383db66e404bbda4008be990a9ce7c937921a2034e62",
+      "bytes": 637396
+    }
+  ]
+}

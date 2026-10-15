@@ -43,6 +43,12 @@ def test_full_clip_last_five_blocks_and_gradients():
 
     cfg = defaults() | {"pretrained": False}
     model = make_model(cfg, 3)
+    model.configure_method("finetune")
+    assert model.backbone.visual_projection.weight.requires_grad
+    assert model.head.weight.requires_grad
+    assert model.backbone.vision_model.encoder.layers[7].self_attn.q_proj.weight.requires_grad
+    assert not model.backbone.vision_model.encoder.layers[6].self_attn.q_proj.weight.requires_grad
+    assert not model.backbone.vision_model.encoder.layers[7].layer_norm1.weight.requires_grad
     model.enable_masks()
     layers = model.backbone.vision_model.encoder.layers
     assert len(layers) == 12

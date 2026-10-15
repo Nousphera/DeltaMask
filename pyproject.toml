@@ -4,20 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deltamask"
-version = "0.1.0"
+version = "0.2.0"
 description = "DeltaMask stochastic mask learning and four-wise binary fuse transport"
 readme = "README.md"
-license-files = ["THIRD_PARTY_LICENSES"]
+license = "MIT AND Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES"]
 requires-python = ">=3.11,<3.14"
 dependencies = ["numpy>=2,<3", "scipy>=1.14,<2", "pillow>=11,<13", "torch==2.8.0", "torchvision==0.23.0", "flwr==1.40.0", "transformers==4.57.6", "timm==1.0.30"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
 simulation = ["flwr[simulation]==1.40.0"]
-vision = []  # Kept as a compatibility extra; native App dependencies include vision.
 
 [project.scripts]
 deltamask-train = "deltamask.train:main"
+deltamask-evaluate = "deltamask.evaluate:main"
+deltamask-experiment = "deltamask.experiment:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -62,3 +64,11 @@ output = "results/flower.json"
 device = "cpu"
 model-revision = ""
 model-checkpoint = ""
+
+method = "deltamask"
+mask-epsilon = 0.01
+numerical-epsilon = 0.0000001
+registration-timeout = 120.0
+reply-timeout = 3600.0
+save-updates = false
+model-root = "checkpoints"

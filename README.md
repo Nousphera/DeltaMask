@@ -63,37 +63,34 @@ The output is `data/cifar10/`, containing torchvision's original 50,000/10,000 t
 
 ## Training
 
-Launch the actual Flower `ClientApp` and `ServerApp` with two local SuperNodes:
+The native app defaults to the paper's pretrained CLIP ViT-B/32 and prepared CIFAR-10 images. Prepare the dataset first; `allow-download=true` permits the initial pinned model download. Launch two local SuperNodes:
 
 ```bash
 mkdir -p results
 export FLWR_HOME="$HOME/.flwr-deltamask"
 export FLWR_LOCAL_SUPERLINK_HTTP_API_PORT=39134
+export FLWR_LOCAL_CONTROL_API_PORT=39136
 flwr run . local \
   --federation-config 'num-supernodes=2 client-resources-num-cpus=1 client-resources-num-gpus=0.0 init-args-num-cpus=2' \
-  --run-config "output=\"$PWD/results/flower.json\"" --stream
+  --run-config "data-root=\"$PWD/data\" allow-download=true output=\"$PWD/results/clip-cifar10-check.json\"" --stream
 ```
 
-This offline, two-round CPU smoke run trains a tiny random network, sends encoded mask bytes and applies the method's server aggregation. The default configuration uses generated vectors and a randomly initialized tiny model; no external assets are required. `num-clients` and `num-supernodes` must agree. `FLWR_HOME` stores runtime state; changing it alone does not isolate a previously running local SuperLink's ports. Run one local simulation service at a time or configure distinct SuperLink addresses.
+`num-clients` and `num-supernodes` must agree. Use absolute data, checkpoint and output paths because Flower's installed bundle has its own working directory. CPU training of the full paper architectures is memory intensive; size the client and server resources accordingly. A state directory alone does not isolate listening ports.
 
-A prepared CIFAR experiment uses the pinned CLIP checkpoint. `allow-download=true` permits its initial model download. Start with two clients and two rounds; the pretrained model download requires additional disk space:
+For the full configured experiment, use `--run-config configs/clip-cifar10-iid.toml` (30 clients) or `configs/clip-cifar10-noniid.toml` (30 clients, 20% participation, Dirichlet α=0.1), after editing that TOML file to set absolute data/output paths and the available device. Flower accepts either one TOML file or inline key-value overrides, so do not combine those formats. Set `num-supernodes=30`; CPU/GPU allocations must match your machine. A GPU configuration needs an appropriate CUDA PyTorch build and explicit GPU client resources.
 
-```bash
-flwr run . local \
-  --federation-config 'num-supernodes=2 client-resources-num-cpus=1 client-resources-num-gpus=0.0 init-args-num-cpus=2' \
-  --run-config "dataset=\"cifar10\" model=\"clip-vit-b32\" data-root=\"$PWD/data\" num-clients=2 num-rounds=2 device=\"cpu\" allow-download=true output=\"$PWD/results/clip-cifar10-check.json\"" --stream
-```
-
-For the full configured experiment, use `--run-config configs/clip-cifar10-iid.toml` (30 clients) or `configs/clip-cifar10-noniid.toml` (30 clients, 20% participation, Dirichlet α=0.1), followed by overrides for absolute data/output paths and available device. Set `num-supernodes=30`; CPU/GPU allocations must match your machine. A GPU configuration needs an appropriate CUDA PyTorch build and explicit GPU client resources.
-
-The offline handler runner is also available:
+For an explicit offline execution check, use full DINOv2-Small initialized from scratch, two generated 224×224 training images, two test images and one mask-training round:
 
 ```bash
 deltamask-train --config configs/smoke.toml --output results/offline.json
+# Same check through native Flower (same federation resources as above):
+flwr run . local \
+  --run-config "dataset=\"synthetic-images\" model=\"dinov2-small\" pretrained=false num-rounds=1 output=\"$PWD/results/flower-smoke.json\"" \
+  --federation-config 'num-supernodes=2 client-resources-num-cpus=1 init-args-num-cpus=2' --stream
 deltamask-train --help
 ```
 
-It uses the same app handlers through an in-process transport. Supported pretrained backbones are CLIP ViT-B/32 and ViT-L/14, DINOv2 Base and Small, and ConvMixer-768/32. [DATASETS.md](DATASETS.md) explains cached/local checkpoints. Use absolute paths with native Flower because its installed bundle has its own working directory.
+The handler runner uses an in-process transport. The smoke config explicitly sets `pretrained=false`; it does not measure pretrained accuracy or reproduce the paper benchmarks. Both entry points use the same app handlers. Supported pretrained backbones are CLIP ViT-B/32 and ViT-L/14, DINOv2 Base and Small, and ConvMixer-768/32. [DATASETS.md](DATASETS.md) explains cached/local checkpoints. Use absolute paths with native Flower because its installed bundle has its own working directory.
 
 ## Evaluation
 
@@ -110,13 +107,13 @@ print(json.dumps(report["rounds"][-1], indent=2))
 PYTHON
 ```
 
-Accuracy is a fraction in `[0, 1]`. Uplink bpp measures the encoded mask payload, including metadata and PNG, per participating client and masked parameter. Classifier setup and downlink bytes are reported separately; see [byte accounting](REPRODUCIBILITY.md#outputs-and-byte-accounting).
+Accuracy is a fraction in `[0, 1]`. Uplink bpp measures the encoded mask payload, including metadata and PNG, per participating client and masked parameter. Classifier setup and downlink bytes are reported separately; see [byte accounting](#outputs-and-byte-accounting).
 
 ### Saved outputs
 
 The JSON report saves configuration, input-manifest hash, package versions, accuracy, update bytes, score downlink bytes, classifier setup traffic and a final-score digest. A sibling `.npz` contains mask scores and the probed classifier without pickle. Existing output/checkpoint paths are preserved; choose another name to rerun. Run data validation before experiments; training checks split and label identity while full file hashes are verified explicitly by preparation.
 
-The native protocol sends four-wise BFuse8 fingerprints compressed as PNG, not client score arrays. Small fixtures have substantial protocol-header overhead. See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for initialization, sampling, model revisions, evaluation and byte accounting. Payloads contain visible filter fingerprints and public sampling metadata.
+The native protocol sends four-wise BFuse8 fingerprints compressed as PNG, not client score arrays. Small fixtures have substantial protocol-header overhead. The protocol settings below define initialization, sampling and byte accounting. Payloads contain visible filter fingerprints and public sampling metadata.
 
 ## Pretrained models
 
@@ -130,7 +127,39 @@ Select a backbone with the Flower `model` configuration key. CLIP and DINOv2 use
 | `dinov2-small` | DINOv2 Small |
 | `convmixer-768-32` | timm `convmixer_768_32.in1k` |
 
-Training saves the learned mask scores and classifier in `.npz`; the frozen backbone is loaded from its recorded model revision. The default `tiny` backbone is randomly initialized.
+Training saves the learned mask scores and classifier in `.npz`; the frozen backbone is loaded from its recorded model revision. `pretrained=false` constructs the selected full paper architecture with random weights, without downloading. Pretrained loading failures are surfaced; there is no replacement model or random-weight fallback. Local checkpoints must match the selected architecture.
+
+## Method and protocol
+
+| Stage | Code | Behavior |
+|---|---|---|
+| Classifier adaptation | `model.probe`, `server_app.run_server` | One local epoch per client, sample-weighted classifier averaging, frozen backbone |
+| Stochastic masks | `model.Model.enable_masks`, `MaskedLayer` | Final five backbone blocks; Bernoulli forward with identity straight-through gradients in probability space |
+| Shared reference | `codec.sample_mask` | NumPy PCG64, seed plus round, one flattened random stream |
+| Changed-position selection | `codec.bernoulli_kl`, `selected_changes` | Full Bernoulli KL, floor(κ × changed positions), stable index ties |
+| Four-wise BFuse8 | `native/fastfilter`, `_bfuse` | Four hash locations and eight-bit fingerprints; all inserted keys verified after construction |
+| Payload | `codec.encode` / `decode` | PNG bytes, filter geometry, seed, dimension, version and context digest |
+| Mask reconstruction | `server_app.run_server` | Query every coordinate and XOR matches with the shared reference |
+| Bayesian aggregation | `aggregate.BayesianMask` | Unweighted binary observations, Beta(1,1) MAP and probability clipping |
+| Flower application | `client_app`, `server_app` | Classifier arrays during setup; encoded bytes for mask updates |
+
+Local and global transmission masks use common random uniforms within a round. Each mask is marginally Bernoulli; the coupling reduces changed positions. Each round uses a new public stream, while local minibatch sampling has a separate Torch client/round seed.
+
+Mask logits initialize at zero, giving probability 0.5. Selected linear/convolution weights and biases, the CLIP projection and the classifier are masked; earlier blocks and normalization parameters remain frozen. The Bernoulli straight-through estimator passes the incoming gradient unchanged in probability space, and sigmoid supplies its derivative. Adam optimizes local scores.
+
+The cosine selection schedule increases κ from 0.8 to 1.0 over `max(1, (R−1)//16)` rounds and stays at its endpoint. Bayesian priors reset before aggregation at rounds divisible by `floor(1/participation)`. Probabilities are clipped to `[1e−7, 1−1e−7]`. Evaluation samples seeded stochastic masks per forward batch.
+
+Top-κ selection and filter false positives make mask reconstruction lossy; PNG compression is lossless. The payload carries visible filter fingerprints and public sampling metadata.
+
+
+## Outputs and byte accounting
+
+JSON reports configuration, the input-manifest hash, package versions, per-round accuracy and actual mask-payload bytes, including metadata and PNG. Uplink bits per parameter divide those bytes by the participating client count and masked parameter count. Separate counters record classifier-probe uplink and score/head downlink record sizes.
+
+These are application-payload measurements: network framing, metrics/control messages, initial pretrained-checkpoint downloads and deployment setup are excluded. Short runs can have proportionally larger setup overhead.
+
+The sibling `.npz` stores `scores`, `head.weight` and `head.bias` without pickle. To evaluate saved state, rebuild `make_model` with the JSON configuration and class count, load the head tensors, call `enable_masks()`, then `set_mask_scores(model, scores)`. Frozen pretrained weights are loaded from the recorded model revision. Optimizer state and automatic training resumption are not stored. Existing JSON or checkpoint files are protected from overwrite.
+
 
 ## Results
 
@@ -164,4 +193,6 @@ DeltaMask is within 0.63 percentage points of FedPM in the IID setting and 0.51 
 
 ## License and attribution
 
-First-party code has no repository-wide license grant. Vendored FastFilter is Apache-2.0; its license applies to that component. See [attribution and licenses](PROVENANCE.md). Native C++ source is included in a generated JSON bundle for compilation inside Flower application bundles.
+First-party code has no repository-wide license grant. FastFilter's Apache-2.0 terms, copyright and modification attribution are in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES). Paper figures, datasets and pretrained checkpoints retain their own terms.
+
+Native C++ sources and required license text are included in a generated JSON bundle for Flower's text-only application packaging. After changing native sources, regenerate it with `python scripts/bundle_native.py`; `python -m pytest -q` verifies that the bundle matches the canonical files.

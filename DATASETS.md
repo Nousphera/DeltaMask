@@ -58,3 +58,7 @@ All vision adapters feed `deltamask.data.load_data`, used by both Flower applica
 Dataset preparation does not download pretrained models. The default CLIP/DINO model names have pinned Hugging Face revisions in `model.py`; `allow-download=true` explicitly permits model acquisition. Afterwards, cached checkpoints can be used with `allow-download=false`. For a local Hugging Face `save_pretrained` directory, set `model-checkpoint` to that directory; ConvMixer instead expects a timm-compatible checkpoint file. No checkpoint is included in this repository.
 
 Flower executes an installed application bundle. Always pass **absolute** `data-root`, `model-checkpoint` (when used), and `output` paths via `--run-config` so all local SuperNodes resolve the same prepared files. For deployment across machines, stage each client's datasets at the configured accessible paths.
+
+## Offline architecture checks
+
+`configs/smoke.toml` is an explicit bounded test using generated RGB images and the full paper DINOv2-Small architecture. `pretrained=false` initializes that architecture from scratch and accepts no checkpoint; it never substitutes a smaller model. Prepared-image tests use the same architecture. These execution checks do not measure benchmark accuracy. The default app instead loads pretrained CLIP ViT-B/32 on prepared CIFAR-10.

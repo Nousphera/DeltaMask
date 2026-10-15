@@ -12,9 +12,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def fixture_images(root):
+def fixture_images(root, train_samples=8, test_samples=3):
     rng = np.random.default_rng(19)
-    for split, n in (("train", 8), ("test", 3)):
+    for split, n in (("train", train_samples), ("test", test_samples)):
         for label in ("a", "b"):
             folder = root / split / label
             folder.mkdir(parents=True)
@@ -72,30 +72,18 @@ def test_reject_split_overlap_class_mismatch_and_symlinks(tmp_path):
     assert prepare(tmp_path / "data", "--source", source).returncode != 0
 
 
-def test_prepared_images_run_actual_apps_with_local_clip_checkpoint(tmp_path):
-    tr = pytest.importorskip("transformers")
+def test_prepared_images_run_actual_apps_with_paper_dinov2(tmp_path):
     from deltamask.config import defaults
     from deltamask.train import run
 
-    source = fixture_images(tmp_path / "source")
+    source = fixture_images(tmp_path / "source", train_samples=1, test_samples=1)
     result = prepare(tmp_path / "data", "--source", source)
     assert result.returncode == 0, result.stderr
-    config = tr.CLIPVisionConfig(
-        hidden_size=4,
-        intermediate_size=8,
-        num_hidden_layers=1,
-        num_attention_heads=1,
-        image_size=224,
-        patch_size=224,
-        projection_dim=4,
-    )
-    checkpoint = tmp_path / "clip"
-    tr.CLIPVisionModelWithProjection(config).save_pretrained(checkpoint)
     cfg = defaults() | {
         "dataset": "imagefolder",
         "data-root": str(tmp_path / "data"),
-        "model": "clip-vit-b32",
-        "model-checkpoint": str(checkpoint),
+        "model": "dinov2-small",
+        "pretrained": False,
         "output": str(tmp_path / "result.json"),
         "num-rounds": 1,
     }

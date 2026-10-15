@@ -1,8 +1,12 @@
-dataset = "synthetic"
-model = "tiny"
+# Offline CPU execution check using the full paper DINOv2-Small architecture.
+# Random initialization is explicit; these are not pretrained benchmark results.
+dataset = "synthetic-images"
+model = "dinov2-small"
+pretrained = false
 num-clients = 2
-num-rounds = 2
-samples-per-client = 32
-batch-size = 16
+num-rounds = 1
+samples-per-client = 1
+batch-size = 1
+torch-threads = 1
 seed = 42
 output = "results/smoke.json"

@@ -1,11 +1,9 @@
 """Frozen pretrained weights with trainable stochastic masks.
 
-Adapted from DeltaMask model/vit.py and network.py; see PROVENANCE.md.
 The Bernoulli straight-through estimator is identity in probability space;
 sigmoid supplies its own derivative.
 """
 
-import copy
 import numpy as np
 import torch
 from torch import nn
@@ -89,6 +87,10 @@ class Model(nn.Module):
 
 
 def make_model(cfg, classes):
+    from .config import defaults, validate
+
+    cfg = validate(defaults() | cfg)
+    torch.set_num_threads(cfg["torch-threads"])
     revisions = {
         "clip-vit-b32": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
         "clip-vit-l14": "32bd64288804d66eefd0ccbe215aa642df71cc41",
@@ -99,24 +101,46 @@ def make_model(cfg, classes):
     with torch.random.fork_rng():
         torch.manual_seed(cfg["seed"])
         name = cfg["model"]
-        if name == "tiny":
-            # Offline correctness fixture, deliberately not a pretrained foundation model.
-            backbone = nn.Sequential(
-                nn.Linear(8, 16), nn.ReLU(), nn.Linear(16, 12), nn.ReLU()
-            )
-            model = Model(backbone, 12, classes, [backbone], "tiny")
-        elif name.startswith("clip"):
-            from transformers import CLIPVisionModelWithProjection
+        if name.startswith("clip"):
+            from transformers import CLIPVisionConfig, CLIPVisionModelWithProjection
 
             identifier = {
                 "clip-vit-b32": "openai/clip-vit-base-patch32",
                 "clip-vit-l14": "openai/clip-vit-large-patch14",
             }[name]
-            backbone = CLIPVisionModelWithProjection.from_pretrained(
-                cfg["model-checkpoint"] or identifier,
-                revision=None if cfg["model-checkpoint"] else revision,
-                local_files_only=not cfg["allow-download"],
-            )
+            dimensions = {
+                "clip-vit-b32": dict(
+                    hidden_size=768,
+                    intermediate_size=3072,
+                    num_hidden_layers=12,
+                    num_attention_heads=12,
+                    patch_size=32,
+                    projection_dim=512,
+                ),
+                "clip-vit-l14": dict(
+                    hidden_size=1024,
+                    intermediate_size=4096,
+                    num_hidden_layers=24,
+                    num_attention_heads=16,
+                    patch_size=14,
+                    projection_dim=768,
+                ),
+            }[name]
+            if cfg["pretrained"]:
+                backbone = CLIPVisionModelWithProjection.from_pretrained(
+                    cfg["model-checkpoint"] or identifier,
+                    revision=None if cfg["model-checkpoint"] else revision,
+                    local_files_only=not cfg["allow-download"],
+                )
+            else:
+                backbone = CLIPVisionModelWithProjection(CLIPVisionConfig(**dimensions))
+            if any(
+                getattr(backbone.config, key) != value
+                for key, value in dimensions.items()
+            ):
+                raise ValueError(
+                    "Checkpoint architecture does not match the paper model"
+                )
             model = Model(
                 backbone,
                 backbone.config.projection_dim,
@@ -125,17 +149,33 @@ def make_model(cfg, classes):
                 "clip",
             )
         elif name.startswith("dinov2"):
-            from transformers import AutoModel
+            from transformers import AutoModel, Dinov2Config, Dinov2Model
 
             identifier = {
                 "dinov2-base": "facebook/dinov2-base",
                 "dinov2-small": "facebook/dinov2-small",
             }[name]
-            backbone = AutoModel.from_pretrained(
-                cfg["model-checkpoint"] or identifier,
-                revision=None if cfg["model-checkpoint"] else revision,
-                local_files_only=not cfg["allow-download"],
+            dimensions = {
+                "dinov2-base": dict(hidden_size=768, num_attention_heads=12),
+                "dinov2-small": dict(hidden_size=384, num_attention_heads=6),
+            }[name] | dict(
+                num_hidden_layers=12, patch_size=14, image_size=518, mlp_ratio=4
             )
+            if cfg["pretrained"]:
+                backbone = AutoModel.from_pretrained(
+                    cfg["model-checkpoint"] or identifier,
+                    revision=None if cfg["model-checkpoint"] else revision,
+                    local_files_only=not cfg["allow-download"],
+                )
+            else:
+                backbone = Dinov2Model(Dinov2Config(**dimensions))
+            if any(
+                getattr(backbone.config, key) != value
+                for key, value in dimensions.items()
+            ):
+                raise ValueError(
+                    "Checkpoint architecture does not match the paper model"
+                )
             model = Model(
                 backbone,
                 backbone.config.hidden_size,
@@ -147,13 +187,13 @@ def make_model(cfg, classes):
             import timm
 
             checkpoint = cfg.get("model-checkpoint", "")
-            if not cfg["allow-download"] and not checkpoint:
+            if cfg["pretrained"] and not cfg["allow-download"] and not checkpoint:
                 raise ValueError(
                     "ConvMixer needs model-checkpoint or allow-download=true"
                 )
             backbone = timm.create_model(
                 "convmixer_768_32.in1k",
-                pretrained=not bool(checkpoint),
+                pretrained=cfg["pretrained"] and not bool(checkpoint),
                 checkpoint_path=checkpoint,
             )
             features = backbone.num_features

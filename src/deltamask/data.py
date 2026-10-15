@@ -45,16 +45,16 @@ def targets(ds):
 def load_data(cfg):
     name = cfg["dataset"]
     seed = cfg["seed"]
-    if name == "synthetic":
-        rng = np.random.default_rng(seed)
-        teacher = rng.normal(size=(8, 3))
+    if name == "synthetic-images":
+        # Explicit offline execution fixture: full-resolution images, never vector inputs.
+        generator = torch.Generator().manual_seed(seed)
 
         def generate(n):
-            x = rng.normal(size=(n, 8)).astype("float32")
-            y = (x @ teacher).argmax(1)
-            return TensorDataset(torch.from_numpy(x), torch.from_numpy(y))
+            x = torch.randn(n, 3, 224, 224, generator=generator)
+            y = torch.arange(n) % 3
+            return TensorDataset(x, y)
 
-        return generate(cfg["num-clients"] * cfg["samples-per-client"]), generate(64), 3
+        return generate(cfg["num-clients"] * cfg["samples-per-client"]), generate(2), 3
     from torchvision import datasets as D, transforms as T
 
     is_clip = cfg["model"].startswith("clip")

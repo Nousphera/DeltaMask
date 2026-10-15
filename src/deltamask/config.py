@@ -9,18 +9,20 @@ def defaults():
         "num-clients": 2,
         "participation": 1.0,
         "local-epochs": 1,
-        "batch-size": 16,
+        "batch-size": 1,
         "learning-rate": 0.1,
         "probe-learning-rate": 0.1,
         "kappa": 0.8,
         "seed": 42,
-        "dataset": "synthetic",
-        "model": "tiny",
+        "dataset": "cifar10",
+        "model": "clip-vit-b32",
+        "pretrained": True,
+        "torch-threads": 1,
         "data-root": "data",
         "allow-download": False,
         "alpha": 10.0,
-        "samples-per-client": 32,
-        "output": "results/smoke.json",
+        "samples-per-client": 1,
+        "output": "results/clip-cifar10.json",
         "device": "cpu",
         "model-revision": "",
         "model-checkpoint": "",
@@ -42,10 +44,22 @@ def validate(cfg):
             raise ValueError(f"{key} must be positive")
     if not 0 < cfg["participation"] <= 1 or not 0 <= cfg["kappa"] <= 1:
         raise ValueError("Invalid participation or kappa")
-    if cfg["dataset"] == "synthetic" and cfg["model"] != "tiny":
-        raise ValueError("Synthetic vectors require tiny model")
-    if cfg["dataset"] != "synthetic" and cfg["model"] == "tiny":
-        raise ValueError("Image datasets require a vision backbone")
+    if cfg["model"] not in {
+        "clip-vit-b32",
+        "clip-vit-l14",
+        "dinov2-base",
+        "dinov2-small",
+        "convmixer-768-32",
+    }:
+        raise ValueError("model must be one of the paper backbones")
+    if type(cfg["pretrained"]) is not bool:
+        raise ValueError("pretrained must be a boolean")
+    if type(cfg["torch-threads"]) is not int or cfg["torch-threads"] < 1:
+        raise ValueError("torch-threads must be a positive integer")
+    if not cfg["pretrained"] and cfg["model-checkpoint"]:
+        raise ValueError(
+            "pretrained=false initializes from scratch; omit model-checkpoint"
+        )
     if cfg["seed"] < 0 or cfg["seed"] >= 2**32:
         raise ValueError("seed must be a uint32")
     return cfg

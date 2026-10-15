@@ -5,49 +5,89 @@ from deltamask.model import make_model, mask_scores, set_mask_scores, train_loca
 from deltamask.data import load_data, partitions
 from deltamask.config import defaults
 
-def test_frozen_backbone_masks_train_and_probe_head():
-    cfg=defaults(); ds,_,classes=load_data(cfg)
-    model=make_model(cfg,classes)
-    before={n:p.detach().clone() for n,p in model.named_parameters()}
-    probe(model,ds,cfg,seed=42)
-    assert not torch.equal(before['head.weight'],model.head.weight)
-    for n,p in model.named_parameters():
-        if not n.startswith('head.'): assert torch.equal(before[n],p)
+
+def test_frozen_backbone_masks_train_and_probe_head(image_check_config):
+    cfg = image_check_config
+    ds, _, classes = load_data(cfg)
+    model = make_model(cfg, classes)
+    before = {n: p.detach().clone() for n, p in model.named_parameters()}
+    probe(model, ds, cfg, seed=42)
+    assert not torch.equal(before["head.weight"], model.head.weight)
+    for n, p in model.named_parameters():
+        if not n.startswith("head."):
+            assert torch.equal(before[n], p)
     model.enable_masks()
-    before={n:p.detach().clone() for n,p in model.named_parameters()}
-    scores=mask_scores(model)
-    train_local(model,ds,cfg,seed=43)
-    assert not np.array_equal(scores,mask_scores(model))
-    for n,p in model.named_parameters():
-        if not n.endswith('_mask'): assert torch.equal(before[n],p)
-    assert all(n.endswith('_mask') for n,p in model.named_parameters() if p.requires_grad)
+    before = {n: p.detach().clone() for n, p in model.named_parameters()}
+    scores = mask_scores(model)
+    train_local(model, ds, cfg, seed=43)
+    assert not np.array_equal(scores, mask_scores(model))
+    for n, p in model.named_parameters():
+        if not n.endswith("_mask"):
+            assert torch.equal(before[n], p)
+    assert all(
+        n.endswith("_mask") for n, p in model.named_parameters() if p.requires_grad
+    )
+
 
 def test_partition_is_seeded_disjoint_and_complete():
-    labels=np.repeat(np.arange(3),40)
-    a=partitions(labels,4,.1,42);b=partitions(labels,4,.1,42)
-    assert [v.tolist() for v in a]==[v.tolist() for v in b]
-    assert sorted(np.concatenate(a).tolist())==list(range(len(labels)))
-    assert min(map(len,a))>0
+    labels = np.repeat(np.arange(3), 40)
+    a = partitions(labels, 4, 0.1, 42)
+    b = partitions(labels, 4, 0.1, 42)
+    assert [v.tolist() for v in a] == [v.tolist() for v in b]
+    assert sorted(np.concatenate(a).tolist()) == list(range(len(labels)))
+    assert min(map(len, a)) > 0
 
-def test_real_small_clip_last_five_blocks_and_gradients(monkeypatch):
-    import pytest
-    tr=pytest.importorskip('transformers')
+
+def test_full_clip_last_five_blocks_and_gradients():
     from deltamask.model import MaskedLayer
-    vision=tr.CLIPVisionConfig(hidden_size=16,intermediate_size=32,num_hidden_layers=6,num_attention_heads=2,image_size=16,patch_size=8,projection_dim=8)
-    monkeypatch.setattr(tr.CLIPVisionModelWithProjection,'from_pretrained',lambda *a,**kw:tr.CLIPVisionModelWithProjection(vision))
-    cfg=defaults();cfg.update({'model':'clip-vit-b32','dataset':'cifar10'})
-    model=make_model(cfg,3);model.enable_masks()
-    layers=model.backbone.vision_model.encoder.layers
-    assert not any(isinstance(m,MaskedLayer) for m in layers[0].modules())
-    assert all(any(isinstance(m,MaskedLayer) for m in layer.modules()) for layer in layers[1:])
-    model(torch.randn(2,3,16,16)).sum().backward()
-    assert all(p.grad is None for n,p in model.named_parameters() if not n.endswith('_mask'))
-    assert any(p.grad is not None and torch.count_nonzero(p.grad)>0 for n,p in model.named_parameters() if n.endswith('_mask'))
+
+    cfg = defaults() | {"pretrained": False}
+    model = make_model(cfg, 3)
+    model.enable_masks()
+    layers = model.backbone.vision_model.encoder.layers
+    assert len(layers) == 12
+    assert not any(
+        isinstance(m, MaskedLayer) for layer in layers[:7] for m in layer.modules()
+    )
+    assert all(
+        any(isinstance(m, MaskedLayer) for m in layer.modules()) for layer in layers[7:]
+    )
+    model(torch.randn(1, 3, 224, 224)).sum().backward()
+    assert all(
+        p.grad is None for n, p in model.named_parameters() if not n.endswith("_mask")
+    )
+    assert any(
+        p.grad is not None and torch.count_nonzero(p.grad) > 0
+        for n, p in model.named_parameters()
+        if n.endswith("_mask")
+    )
 
 
 def test_convolution_masks_preserve_depthwise_shape_and_backbone():
     from deltamask.model import MaskedLayer
-    layer=torch.nn.Conv2d(4,4,3,padding=1,groups=4)
-    masked=MaskedLayer(layer)
-    masked(torch.randn(2,4,8,8)).square().mean().backward()
+
+    layer = torch.nn.Conv2d(4, 4, 3, padding=1, groups=4)
+    masked = MaskedLayer(layer)
+    masked(torch.randn(2, 4, 8, 8)).square().mean().backward()
     assert layer.weight.grad is None and masked.weight_mask.grad is not None
+
+
+def test_default_backbone_uses_full_paper_clip_without_weights():
+    torch.set_num_threads(1)
+    cfg = defaults() | {"pretrained": False}
+    model = make_model(cfg, 3)
+    assert sum(p.numel() for p in model.backbone.parameters()) > 85_000_000
+    config = model.backbone.config
+    assert (config.hidden_size, config.num_hidden_layers, config.patch_size) == (
+        768,
+        12,
+        32,
+    )
+
+
+def test_nonpaper_backbones_are_rejected():
+    import pytest
+    from deltamask.config import validate
+
+    with pytest.raises(ValueError, match="paper"):
+        validate(defaults() | {"model": "mlp"})

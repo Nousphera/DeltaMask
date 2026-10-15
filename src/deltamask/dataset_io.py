@@ -170,7 +170,7 @@ def load_prepared(name, root, transform=None):
 
 
 def manifest_digest(name, root):
-    return None if name == "synthetic" else digest(Path(root) / name / "manifest.json")
+    return None if name == "synthetic-images" else digest(Path(root) / name / "manifest.json")
 
 
 def copy_source(name, source, stage):

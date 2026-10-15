@@ -1,3 +1,15 @@
+FastFilter native component
+
+Source: https://github.com/FastFilter/fastfilter_cpp
+Revision: 7c5bf187d5096ccbcec6a16e02975d0af3328b01
+Copyright 2018 The fastfilter_cpp authors.
+
+Applies only to src/deltamask/native/fastfilter/*.h. First-party DeltaMask code
+has no repository-wide license grant.
+
+Modifications: bounded construction retries, explicit overflow errors, safe
+small-size and standalone-include handling. Notices remain in modified headers.
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

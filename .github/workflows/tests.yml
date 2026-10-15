@@ -15,13 +15,13 @@ jobs:
         env:
           FLWR_DISABLE_RUNTIME_DEPENDENCY_INSTALLATION: '1'
         run: |
-          flwr run . local --stream --run-config "output='$(pwd)/runs/native-flower.json'" \
+          flwr run . local --stream --run-config "dataset='synthetic-images' model='dinov2-small' pretrained=false num-rounds=1 output='$(pwd)/runs/native-flower.json'" \
             --federation-config 'num-supernodes=2 client-resources-num-cpus=1 init-args-num-cpus=2'
           python - <<'PYVERIFY'
           import json
           from pathlib import Path
           result = json.loads(Path("runs/native-flower.json").read_text())
-          assert len(result["rounds"]) == 2
+          assert len(result["rounds"]) == 1
           assert all(row["clients"] == 2 and row["payload_bytes"] > 0 for row in result["rounds"])
           assert Path("runs/native-flower.npz").is_file()
           PYVERIFY

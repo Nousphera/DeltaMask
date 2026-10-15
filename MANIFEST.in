@@ -1,3 +1,0 @@
-include README.md PROVENANCE.md REPRODUCIBILITY.md SOURCE_MANIFEST.json
-recursive-include src/deltamask/native *.h *.cpp *.json LICENSE
-recursive-include configs *.toml
